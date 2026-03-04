@@ -1,4 +1,4 @@
-# Account Map | Hackathon Version Polished
+# Account Map • Hackathon Version Polished
 
 ![3D Map View](./public/screen.png)
 

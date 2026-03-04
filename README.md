@@ -1,18 +1,37 @@
-# Account Map
+# Account Map | Hackathon Version Polished
 
 ![3D Map View](./public/screen.png)
-
-## Team Members
-
-- Andrii Malakhovtsev, @andrii-malakhovtsev, <malakhovtsev.2@wright.edu>
-- Brianna Persinger, @BBBree, <persinger.9@wright.edu>
-- Owen Kemp, @Striker2783, <kemp.56@wright.edu>
-- Sulav Pradhan, @sulav-pradhan, <pradhan.49@wright.edu>
-- Wens Kedar Barambona, @b-wens-kedar, <barambona.3@wright.edu>
 
 ## Description
 
 This web application helps users manage their different login methods to each account they have made.
+
+## Team Members
+
+- [Andrii Malakhovtsev](https://github.com/andrii-malakhovtsev) - <malakhovtsev.2@wright.edu>
+- [Brianna Persinger](https://github.com/BBBree) - <persinger.9@wright.edu>
+- [Owen Kemp](https://github.com/Striker2783) - <kemp.56@wright.edu>
+- [Sulav Pradhan](https://github.com/sulav-pradhan) - <pradhan.49@wright.edu>
+- [Wens Kedar Barambona](https://github.com/b-wens-kedar) - <barambona.3@wright.edu>
+
+[About page with more members information](https://demo.accountmap.org/about)
+
+## Awards
+🏆 [Awarded](https://www.linkedin.com/posts/logankrause2_github-henrikd1215hackathon26-2-activity-7426641579467182080-mo65/) "[Riverside Research](https://github.com/riversideresearch)'s CyberSecurity Stalwarts" </br>
+🏆 [Recommended](https://andrii-malakhovtsev.com/assets/accountmap-recommendation.pdf) by "Wright State University CEG/CS Alumni Society"
+
+## History
+
+### Planning phase
+<img width="2587" height="1898" alt="image" src="https://github.com/user-attachments/assets/72a201ac-b8a4-4806-99f4-c4b0a437e915" />
+
+### Trello Collaboration
+<img width="1282" height="636" alt="image" src="https://github.com/user-attachments/assets/90e8a0f1-c675-4123-be5e-97f2b4c1997d" />
+
+
+###
+
+
 
 ## How to Run
 

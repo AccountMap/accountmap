@@ -46,28 +46,49 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
     }))
   }), [nodes, links]);
 
-  // STABILIZATION & PHYSICS
+  // STABILIZATION & PHYSICS – 2D: tighter layout, less “active”, organic shapes (not a big circle)
   useEffect(() => {
     if (fgRef.current) {
       const fg = fgRef.current;
-      
-      const linkDist = is3D ? 30 : (isMobile ? 45 : 55); 
-      const chargeStr = is3D ? -100 : (isMobile ? -60 : -150);
 
-      fg.d3Force("link").distance(linkDist);
-      fg.d3Force("charge").strength(chargeStr);
-      
-      fg.d3Force("center").strength(0.8); 
-      
-      // ONLY zoom on the very first time data loads
+      if (is3D) {
+        // 3D: tighter layout, organic shapes (weaker center), less spread-out
+        fg.d3Force("link").distance(20);
+        fg.d3Force("charge").strength(-45);
+        fg.d3Force("center").strength(0.25);
+      } else {
+        // 2D: shorter links (nodes stay closer), weaker repulsion & center so layout can form clusters/chains
+        const linkDist = isMobile ? 28 : 36;
+        const chargeStr = isMobile ? -35 : -50;
+        fg.d3Force("link").distance(linkDist);
+        fg.d3Force("charge").strength(chargeStr);
+        fg.d3Force("center").strength(0.2); // low = nodes not pulled into one circle
+      }
+
+      // ONLY zoom on the very first time data loads – 2D: large padding so you see the whole graph
       if (initialLoadRef.current && nodes.length > 0) {
         setTimeout(() => {
-          fg.zoomToFit(400, 30);
+          const padding = is3D ? 30 : 240;
+          fg.zoomToFit(400, padding);
           initialLoadRef.current = false;
         }, 300);
       }
     }
   }, [graphData, is3D, isMobile]);
+
+  // 3D: faster zoom in/out via controls (run after mount so controls exist)
+  useEffect(() => {
+    if (!is3D) return;
+    const t = setTimeout(() => {
+      const fg = fgRef.current;
+      if (!fg) return;
+      const ctrl = typeof fg.controls === 'function' ? fg.controls() : fg.controls;
+      if (ctrl && typeof ctrl.zoomSpeed !== 'undefined') {
+        ctrl.zoomSpeed = 2.5;
+      }
+    }, 100);
+    return () => clearTimeout(t);
+  }, [is3D, graphData]);
 
   const handleCenter = () => {
     if (fgRef.current) fgRef.current.zoomToFit(600, is3D ? 20 : 40);
@@ -107,15 +128,18 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
       group.add(sprite);
     }
 
-    const labelText = (isConn ? (isDummyConnection(node) ? 'No connection' : (node.type || '')) : (node.name || '')).toUpperCase();
-    const label = new SpriteText(labelText);
-    label.color = isSelected ? "#3b82f6" : (isConn ? "#60a5fa" : "#9ca3af");
-    label.textHeight = isMobile ? 4 : 3; 
-    label.fontWeight = "700";
-    label.position.y = -(baseSize + 6);
-    label.raycast = () => null; 
-    group.add(label);
-    
+    // Only show labels for connections (not accounts) to avoid clutter; account names show on hover
+    if (isConn) {
+      const labelText = (isDummyConnection(node) ? 'No connection' : (node.type || '')).toUpperCase();
+      const label = new SpriteText(labelText);
+      label.color = isSelected ? "#3b82f6" : "#60a5fa";
+      label.textHeight = isMobile ? 4 : 3;
+      label.fontWeight = "700";
+      label.position.y = -(baseSize + 6);
+      label.raycast = () => null;
+      group.add(label);
+    }
+
     return group;
   }, [selectedId, iconCache, isMobile]);
 
@@ -132,10 +156,15 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
       )}
       <button 
         onClick={handleCenter}
-        className="absolute bottom-6 right-6 z-[100] bg-blue-600 border border-white/20 text-white p-4 rounded-full shadow-lg active:scale-90 transition-all"
+        title="Center and fit graph"
+        aria-label="Center and fit graph"
+        className="absolute bottom-6 right-6 z-[100] bg-blue-600 border border-white/20 text-white p-4 rounded-full shadow-lg active:scale-90 transition-all hover:bg-blue-500"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="3"/><path d="M3 12h3m12 0h3M12 3v3m0 12v3"/></svg>
       </button>
+      <p className="absolute top-4 right-4 z-[100] text-[10px] text-white/50 pointer-events-none">
+        {is3D ? 'Drag to rotate · Scroll to zoom · Drag node to move' : 'Drag to pan · Scroll to zoom'}
+      </p>
 
       {is3D ? (
         <ForceGraph3D
@@ -143,14 +172,21 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
           graphData={graphData}
           backgroundColor="#0a0a0a"
           onNodeClick={(node) => onSelectAccount(node)}
+          nodeLabel={(node) => {
+            const isConn = !!node.accounts;
+            return isConn ? (isDummyConnection(node) ? 'No connection' : (node.type || node.value || '')) : (node.name || '');
+          }}
           nodeThreeObject={getNodeThreeObject}
           nodeThreeObjectExtend={false}
-          linkWidth={1.5}
-          linkColor={() => "rgba(255, 255, 255, 0.1)"}
+          enableNodeDrag={true}
+          enableNavigationControls={true}
+          showNavInfo={false}
+          linkWidth={2}
+          linkColor={() => "rgba(255, 255, 255, 0.14)"}
           linkDirectionalParticles={2}
           linkDirectionalParticleWidth={1.5}
           linkDirectionalParticleSpeed={0.006}
-          hoverPrecision={1} 
+          hoverPrecision={8}
         />
       ) : (
         <ForceGraph2D
@@ -158,6 +194,10 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
           graphData={graphData}
           backgroundColor="#0a0a0a"
           onNodeClick={(node) => onSelectAccount(node)}
+          nodeLabel={(node) => {
+            const isConn = !!node.accounts;
+            return isConn ? (isDummyConnection(node) ? 'No connection' : (node.type || node.value || '')) : (node.name || '');
+          }}
           clickDistanceThreshold={25}
           nodePointerAreaPaint={(node, color, ctx) => {
             ctx.fillStyle = color;
@@ -184,19 +224,20 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
               ctx.drawImage(img, node.x - iconSize, node.y - iconSize, iconSize * 2, iconSize * 2);
             }
 
-            const label = (isConn ? (isDummyConnection(node) ? 'No connection' : (node.type || '')) : (node.name || '')).toUpperCase();
-            
-            // SMALLER TEXT & CONDITIONAL SHOWING ON MOBILE
-            if (globalScale > 0.75 || isSelected) {
-              const fontSize = (isMobile ? 8 : 11) / globalScale;
-              ctx.font = `800 ${fontSize}px Inter, sans-serif`;
-              ctx.textAlign = "center";
-              ctx.fillStyle = isSelected ? "#3b82f6" : (isConn ? "#60a5fa" : "#9ca3af");
-              ctx.fillText(label, node.x, node.y + size + (isMobile ? 8 : 7));
+            // Only show labels for connections (not accounts) to avoid overlap; account names show on hover
+            if (isConn) {
+              const label = (isDummyConnection(node) ? 'No connection' : (node.type || '')).toUpperCase();
+              if (globalScale > 0.75 || isSelected) {
+                const fontSize = (isMobile ? 8 : 11) / globalScale;
+                ctx.font = `800 ${fontSize}px Inter, sans-serif`;
+                ctx.textAlign = "center";
+                ctx.fillStyle = isSelected ? "#3b82f6" : "#60a5fa";
+                ctx.fillText(label, node.x, node.y + size + (isMobile ? 8 : 7));
+              }
             }
           }}
-          linkWidth={isMobile ? 1.2 : 1.2}
-          linkColor={() => "rgba(255, 255, 255, 0.08)"}
+          linkWidth={isMobile ? 2.5 : 3}
+          linkColor={() => "rgba(255, 255, 255, 0.12)"}
         />
       )}
     </div>

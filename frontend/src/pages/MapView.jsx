@@ -2,6 +2,7 @@ import "./../utilities/webgpuShim";
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 import ForceGraph3D from "react-force-graph-3d";
+import { forceCollide } from "d3-force";
 import * as THREE from "three";
 import SpriteText from "three-spritetext";
 import { loadImage } from "./../utilities/iconService";
@@ -46,35 +47,42 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
     }))
   }), [nodes, links]);
 
-  // STABILIZATION & PHYSICS – 2D: tighter layout, less “active”, organic shapes (not a big circle)
+  // STABILIZATION & PHYSICS – scale by node count so large graphs don’t “fly apart”
+  const n = nodes.length;
+  const scale = n > 0 ? Math.sqrt(n) : 1; // more nodes => weaker repulsion so they don’t explode apart
+
   useEffect(() => {
-    if (fgRef.current) {
-      const fg = fgRef.current;
+    if (!fgRef.current) return;
+    const fg = fgRef.current;
 
-      if (is3D) {
-        // 3D: tighter layout, organic shapes (weaker center), less spread-out
-        fg.d3Force("link").distance(20);
-        fg.d3Force("charge").strength(-45);
-        fg.d3Force("center").strength(0.25);
-      } else {
-        // 2D: shorter links (nodes stay closer), weaker repulsion & center so layout can form clusters/chains
-        const linkDist = isMobile ? 28 : 36;
-        const chargeStr = isMobile ? -35 : -50;
-        fg.d3Force("link").distance(linkDist);
-        fg.d3Force("charge").strength(chargeStr);
-        fg.d3Force("center").strength(0.2); // low = nodes not pulled into one circle
-      }
+    // Back to responsive: only slightly slower than original (defaults ~0.0228 alpha decay, 0.4 velocity decay)
+    if (typeof fg.d3AlphaDecay === "function") fg.d3AlphaDecay(0.028);
+    if (typeof fg.d3VelocityDecay === "function") fg.d3VelocityDecay(0.48);
+    if (typeof fg.cooldownTime === "function") fg.cooldownTime(Number.POSITIVE_INFINITY);
+    if (typeof fg.cooldownTicks === "function") fg.cooldownTicks(Number.POSITIVE_INFINITY);
 
-      // ONLY zoom on the very first time data loads – 2D: large padding so you see the whole graph
-      if (initialLoadRef.current && nodes.length > 0) {
-        setTimeout(() => {
-          const padding = is3D ? 30 : 240;
-          fg.zoomToFit(400, padding);
-          initialLoadRef.current = false;
-        }, 300);
-      }
+    const chargeBase = is3D ? -45 : (isMobile ? -35 : -50);
+    const chargeStr = Math.max(chargeBase, Math.min(-22, chargeBase * 12 / scale));
+    const centerStr = Math.min(0.85, 0.5 + n * 0.004);
+    if (is3D) {
+      fg.d3Force("link").distance(20);
+      fg.d3Force("charge").strength(chargeStr);
+      fg.d3Force("center").strength(centerStr);
+    } else {
+      const linkDist = isMobile ? 28 : 36;
+      fg.d3Force("link").distance(linkDist);
+      fg.d3Force("charge").strength(chargeStr);
+      fg.d3Force("center").strength(centerStr);
+      fg.d3Force("collide", forceCollide().radius((node) => (node.accounts ? 30 : 14)).strength(0.95));
     }
-  }, [graphData, is3D, isMobile]);
+
+    if (initialLoadRef.current && nodes.length > 0) {
+      setTimeout(() => {
+        fg.zoomToFit(400, is3D ? 30 : 240);
+        initialLoadRef.current = false;
+      }, 300);
+    }
+  }, [graphData, is3D, isMobile, n, scale]);
 
   // 3D: faster zoom in/out via controls (run after mount so controls exist)
   useEffect(() => {
@@ -170,6 +178,10 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
         <ForceGraph3D
           ref={fgRef}
           graphData={graphData}
+          d3AlphaDecay={0.028}
+          d3VelocityDecay={0.48}
+          cooldownTicks={Infinity}
+          cooldownTime={Infinity}
           backgroundColor="#0a0a0a"
           onNodeClick={(node) => onSelectAccount(node)}
           nodeLabel={(node) => {
@@ -192,6 +204,10 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
         <ForceGraph2D
           ref={fgRef}
           graphData={graphData}
+          d3AlphaDecay={0.028}
+          d3VelocityDecay={0.48}
+          cooldownTicks={Infinity}
+          cooldownTime={Infinity}
           backgroundColor="#0a0a0a"
           onNodeClick={(node) => onSelectAccount(node)}
           nodeLabel={(node) => {

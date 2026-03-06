@@ -1,5 +1,7 @@
 ACCOUNTMAP
 ———
+EVERYONE SHARES THE SAME MAP, DON'T SHARE PERSONAL INFO
+———
 WHY ABOUT 50 SECONDS?
 ———
 The back-end runs on a free Render.com tier.

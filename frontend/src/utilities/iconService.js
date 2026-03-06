@@ -1,11 +1,15 @@
-// Generic icons by category (Flaticon CDN) – used when no brand match
+// Generic icons by category – predefined for Auth (Good Auth style), Mail (Gmail), Phone (as-is)
 const ICONS = {
   generic: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
   dummy: 'https://cdn-icons-png.flaticon.com/512/10833/10833652.png', // unlink / no connection
   user: 'https://cdn-icons-png.flaticon.com/512/1077/1077114.png',
   link: 'https://cdn-icons-png.flaticon.com/512/3097/3097180.png',
-  mail: 'https://cdn-icons-png.flaticon.com/512/5610/5610944.png',
+  // Mail: Gmail-style (Simple Icons)
+  mail: 'https://cdn.simpleicons.org/gmail/EA4335',
+  // Phone: keep as-is (Flaticon)
   phone: 'https://cdn-icons-png.flaticon.com/512/724/724664.png',
+  // Auth: Good Auth–style (Auth0-style shield from Simple Icons)
+  auth: 'https://cdn.simpleicons.org/auth0/EB5424',
   lock: 'https://cdn-icons-png.flaticon.com/512/3064/3064155.png',
 };
 
@@ -196,7 +200,7 @@ export function getIconCandidates(name) {
     add(ICONS.mail);
   }
   if (/auth|2fa|mfa|totp|authenticator|authy|googleauthenticator/.test(clean)) {
-    add(ICONS.lock);
+    add(ICONS.auth);
   }
 
   // 2) Simple Icons by slug (exact and first-word)

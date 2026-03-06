@@ -24,36 +24,48 @@ router.get("/analyze", async (req, res) => {
 
     console.log(`Sending ${accounts.length} accounts to Gemini...`);
 
-    const model = genAI.getGenerativeModel({ 
+    const sanitized = accounts.map((acc) => {
+      const conns = (acc.connections as { identity?: { type?: string } }[]) || [];
+      const recoveryTypes = conns
+        .map((c) => c.identity?.type?.toLowerCase().replace("_", " "))
+        .filter(Boolean);
+      return {
+        service: acc.name,
+        username: acc.username ? "(has username)" : null,
+        recoveredBy: recoveryTypes.length ? recoveryTypes.join(", ") : "none listed",
+      };
+    });
+
+    const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
       systemInstruction: `
-        You are a Digital Forensic Architect specializing in "Account Recovery Graphs."
-        
-        CONTEXT:
-        This app maps how accounts (Gmail, Outlook, Phone Numbers) are used to recover other services. 
-        It intentionally does NOT store passwords or MFA status. 
-        Your job is to analyze the RECOVERY PATHS only.
+        You are a friendly security advisor explaining "Account Recovery Graphs" to a non-technical user.
 
-        CRITICAL RULES:
-        1. Do NOT suggest adding password fields or MFA tracking.
-        2. Focus solely on "Single Points of Failure" (e.g., one Gmail recovering 10 accounts).
-        3. Identify "Circular Loops" (e.g., Gmail recovers Outlook, Outlook recovers Gmail).
-        4. Flag "SMS Risks" (e.g., High-value accounts relying on phone numbers).
-        5. Be technical, concise, and stay under 200 words.
-      `
+        CONTEXT:
+        This app maps how accounts (email, phone, etc.) are used to recover other services. No passwords or MFA data are stored. You only analyze recovery paths.
+
+        STYLE:
+        - Write in plain, user-friendly language. Avoid jargon; if you use a term, briefly explain it.
+        - Never mention internal IDs, database IDs, or technical identifiers. Refer to accounts by service name and type (e.g. "your Gmail", "Netflix", "your phone number").
+        - Be concise and under 200 words. Prioritize the most important risks first.
+
+        RULES:
+        1. Do NOT suggest adding password or MFA fields.
+        2. Focus on: single points of failure (one email/phone recovering many accounts), circular loops (A recovers B, B recovers A), and over-reliance on SMS.
+        3. Give clear, actionable advice in a reassuring tone.
+      `,
     });
 
     const prompt = `
-      Analyze the following user account security data for vulnerabilities:
-      ${JSON.stringify(accounts)}
+      Analyze this user's account recovery setup and explain the risks in simple terms:
 
-      Identify:
-      1. Critical vulnerabilities.
-      2. Suggested structural changes.
+      ${JSON.stringify(sanitized, null, 2)}
 
-      CONSTRAINTS: 
-      - Limit response to ~200 words.
-      - Prioritize most dangerous risks first.
+      Provide:
+      1. The main risks in plain language (no IDs, use service names like "Gmail", "Netflix").
+      2. Short, practical suggestions to improve recovery security.
+
+      Keep it under 200 words and user-friendly.
     `;
 
     const result = await model.generateContent(prompt);
@@ -65,6 +77,17 @@ router.get("/analyze", async (req, res) => {
   } catch (error: any) {
     console.error("!!! GEMINI CRASHED !!!");
     console.error(error);
+    const msg = String(error?.message || error).toLowerCase();
+    const isQuotaOrKey =
+      msg.includes("429") ||
+      msg.includes("resource_exhausted") ||
+      msg.includes("quota") ||
+      msg.includes("api key") ||
+      msg.includes("api_key") ||
+      msg.includes("invalid api key");
+    if (isQuotaOrKey) {
+      return res.status(403).send("Someone used Gemini API keys already. Wait for new ones later.");
+    }
     return res.status(500).send(`Gemini Error: ${error.message}`);
   }
 });

@@ -40,3 +40,30 @@ body {
   top: 100%;
   bottom: auto;
 }
+
+/* AI Analysis: same rolling credits as loading screen – no scrollbar, flies up from bottom */
+@keyframes analysis-credits-roll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-analysis-credits-roll {
+  animation: analysis-credits-roll var(--analysis-credits-duration, 90s) linear infinite;
+  position: absolute;
+  top: 0;
+  bottom: auto;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}

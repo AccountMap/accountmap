@@ -8,7 +8,6 @@ const updateDataStore = create((set) => ({
   setAccounts: (accounts) => set({ accounts }),
 
   uploadBulkAccounts: async (accounts) => {
-    console.log("inside bulk accounts", accounts);
     set({ loading: true, error: null });
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/accounts/bulk`, {
@@ -16,7 +15,12 @@ const updateDataStore = create((set) => ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(accounts),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data.message || data.error || "Upload failed";
+        set({ error: msg, loading: false });
+        return;
+      }
       set({ accounts: data, loading: false });
     } catch (err) {
       set({ error: "Failed to upload accounts", loading: false });

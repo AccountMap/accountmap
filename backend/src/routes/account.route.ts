@@ -2,6 +2,7 @@ import express from "express";
 import { Account, Identity } from '@prisma/client';
 import { prisma } from "../lib/prisma";
 import { get_default_user } from "../lib/utils";
+import { MAX_ACCOUNTS, MAX_IDENTITIES } from "../lib/limits";
 
 const router = express.Router();
 
@@ -89,6 +90,13 @@ async function get_or_create_identities(
 	}
 
 	if (need_creating.length) {
+		const identityCount = await prisma.identity.count({ where: { userid } });
+		const afterCreate = identityCount + need_creating.length;
+		if (afterCreate > MAX_IDENTITIES) {
+			throw new Error(
+				`Connection limit reached. Maximum ${MAX_IDENTITIES} connections allowed to preserve the cheapest tier database.`,
+			);
+		}
 		const created_ids = await prisma.identity.createManyAndReturn({
 			data: need_creating,
 		});
@@ -113,6 +121,15 @@ router.post("/add", async (req: any, res: any) => {
 			return res.status(500).json({ error: "Default user not found" });
 		}
 		const userid = user.id;
+
+		const accountCount = await prisma.account.count({ where: { userid } });
+		if (accountCount >= MAX_ACCOUNTS) {
+			return res.status(403).json({
+				error: "Account limit reached",
+				message: `Maximum ${MAX_ACCOUNTS} accounts allowed to preserve the cheapest tier database.`,
+				limit: MAX_ACCOUNTS,
+			});
+		}
 
 		const existingAccount = await prisma.account.findFirst({
 			where: {
@@ -147,7 +164,14 @@ router.post("/add", async (req: any, res: any) => {
 		}
 
 		return res.status(201).json({ message: "Account Created Successfully", account });
-	} catch (error) {
+	} catch (error: any) {
+		if (error?.message?.includes("limit")) {
+			return res.status(403).json({
+				error: "Connection limit reached",
+				message: error.message,
+				limit: MAX_IDENTITIES,
+			});
+		}
 		console.error("Error creating account:", error);
 		return res.status(500).json({ error: "Error creating account" });
 	}
@@ -320,14 +344,32 @@ async function sanitizeAccount(req: any, res: any, next: any) {
 
 router.route("/bulk").post(sanitizeAccount, async (req: any, res: any) => {
     try {
+        const user = await get_default_user();
+        if (!user) return res.status(500).json({ error: "User context missing" });
+
+        const currentCount = await prisma.account.count({ where: { userid: user.id } });
+        const toCreate = req.sanitizedBody as { name: string; username: string | null; userid: string; notes: null; categories: never[] }[];
+        const spaceLeft = Math.max(0, MAX_ACCOUNTS - currentCount);
+        if (spaceLeft === 0) {
+            return res.status(403).json({
+                error: "Account limit reached",
+                message: `Maximum ${MAX_ACCOUNTS} accounts allowed to preserve the cheapest tier database.`,
+                limit: MAX_ACCOUNTS,
+            });
+        }
+        const capped = toCreate.slice(0, spaceLeft);
+
         const result = await prisma.account.createMany({
-            data: req.sanitizedBody,
+            data: capped,
             skipDuplicates: true
         });
-        
-        res.status(200).json({ 
-            message: `Successfully created ${result.count} accounts.`,
-            count: result.count 
+
+        const skipped = toCreate.length - capped.length;
+        res.status(200).json({
+            message: `Successfully created ${result.count} accounts.` +
+                (skipped > 0 ? ` ${skipped} skipped (account limit).` : ""),
+            count: result.count,
+            limit: MAX_ACCOUNTS,
         });
     } catch (error) {
         console.error("Error in bulk create:", error);

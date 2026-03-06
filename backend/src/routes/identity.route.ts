@@ -2,6 +2,7 @@ import express from "express";
 import { IdentityType } from '@prisma/client';
 import { prisma } from "../lib/prisma";
 import { get_default_user } from "../lib/utils";
+import { MAX_IDENTITIES } from "../lib/limits";
 
 const router = express.Router();
 
@@ -28,6 +29,14 @@ router.post("/add", async (req: any, res: any) => {
 			return res
 				.status(400)
 				.json({ message: `Invalid type. Must be one of: ${validTypes.join(", ")}` });
+
+		const identityCount = await prisma.identity.count({ where: { userid: user.id } });
+		if (identityCount >= MAX_IDENTITIES) {
+			return res.status(403).json({
+				message: `Connection limit reached. Maximum ${MAX_IDENTITIES} connections allowed to preserve the cheapest tier database.`,
+				limit: MAX_IDENTITIES,
+			});
+		}
 
 		// Check for duplicate (same userid, type, value)
 		const existing = await prisma.identity.findFirst({

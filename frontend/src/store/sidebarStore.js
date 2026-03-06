@@ -17,9 +17,11 @@ const useSidebarStore = create((set) => ({
 				body: JSON.stringify(dataWithoutType),
 			});
 
-			if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-
-			const data = await res.json();
+			const data = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				const msg = data.message || data.error || `HTTP ${res.status}`;
+				throw new Error(msg);
+			}
 			await useUserStore.getState().fetchUsers()
 			set({ loading: false, success: true });
 			return data;
@@ -40,9 +42,11 @@ const useSidebarStore = create((set) => ({
 				body: JSON.stringify(connectionData),
 			});
 
-			if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-
-			const data = await res.json();
+			const data = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				const msg = data.message || data.error || `HTTP ${res.status}`;
+				throw new Error(msg);
+			}
 			await useUserStore.getState().fetchUsers()
 
 			set({ loading: false, success: true });

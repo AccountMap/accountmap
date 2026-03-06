@@ -32,18 +32,12 @@ const SidebarView = ({ selectedAccount, connections, onSelectAccount, onStartLin
                 : (selectedAccount.username || "-")}
             </span>
           </div>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[10px] uppercase tracking-widest text-gray-500">ID</span>
-            <span className="text-[10px] text-gray-400 font-mono truncate max-w-[180px] text-right">
-              {selectedAccount.id || "-"}
-            </span>
-          </div>
         </div>
       </div>
       <button
         type="button"
         onClick={onStartLink}
-        className="w-full py-2 bg-white/5 text-white text-[10px] font-black rounded-md uppercase tracking-[0.2em] hover:bg-white/10 transition-colors border border-white/10"
+        className="w-full py-2 bg-white/5 text-white text-[10px] font-black rounded-md uppercase tracking-[0.2em] hover:bg-white/10 transition-colors border border-white/10 cursor-pointer"
       >
         {linkLabel}
       </button>

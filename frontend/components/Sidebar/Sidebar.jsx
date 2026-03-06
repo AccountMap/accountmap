@@ -152,7 +152,7 @@ const Sidebar = ({
         ${isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"}`}
     >
       <div className="flex items-center justify-between px-6 py-4 md:hidden border-b border-white/5">
-         <button onClick={onClose} className="text-gray-400 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+         <button onClick={onClose} className="text-gray-400 text-sm font-bold uppercase tracking-widest flex items-center gap-2 cursor-pointer">
             <span className="text-lg">←</span> Back
          </button>
          <h3 className="text-[10px] font-black uppercase text-blue-500 tracking-[0.2em]">Context</h3>
@@ -160,7 +160,7 @@ const Sidebar = ({
 
       <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
         <div className="flex flex-col items-center mb-8 relative">
-          <button onClick={onClose} className="hidden md:block absolute -top-4 -right-4 p-2 text-gray-500 hover:text-white transition-colors">✕</button>
+          <button onClick={onClose} className="hidden md:block absolute -top-4 -right-4 p-2 text-gray-500 hover:text-white transition-colors cursor-pointer">✕</button>
 
           {viewMode !== "list" && (
             <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white flex items-center justify-center p-4 mb-4 shadow-2xl overflow-hidden animate-in zoom-in duration-300">
@@ -203,25 +203,25 @@ const Sidebar = ({
         <div className="p-6 border-t border-white/5 bg-black/40 space-y-3 pb-10 md:pb-6">
           {viewMode !== "view" ? (
             <>
-              <button disabled={!isValid || loading} onClick={handleCreate} className={`w-full py-4 md:py-3 text-[10px] font-black rounded-xl uppercase tracking-[0.2em] transition-all ${isValid && !loading ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]" : "bg-gray-800 text-gray-500"}`}>
+              <button disabled={!isValid || loading} onClick={handleCreate} className={`w-full py-4 md:py-3 text-[10px] font-black rounded-xl uppercase tracking-[0.2em] transition-all cursor-pointer ${isValid && !loading ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]" : "bg-gray-800 text-gray-500"}`}>
                 {loading ? "Creating..." : "Create"}
               </button>
               {error && <p className="text-red-500 text-[10px] text-center uppercase font-bold">{error}</p>}
             </>
           ) : isLinking ? (
             <div className="space-y-3">
-              <button disabled={!linkTargetId || loading} onClick={handleLink} className={`w-full py-4 md:py-3 text-[10px] font-black rounded-xl uppercase tracking-[0.2em] transition-all ${!linkTargetId || loading ? "bg-gray-800 text-gray-500" : "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]"}`}>
+              <button disabled={!linkTargetId || loading} onClick={handleLink} className={`w-full py-4 md:py-3 text-[10px] font-black rounded-xl uppercase tracking-[0.2em] transition-all cursor-pointer ${!linkTargetId || loading ? "bg-gray-800 text-gray-500" : "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]"}`}>
                 {loading ? "Linking..." : "Link"}
               </button>
-              <button onClick={() => setIsLinking(false)} className="w-full py-4 md:py-3 bg-white/5 text-white text-[10px] font-black rounded-xl uppercase tracking-[0.2em]">Back</button>
+              <button onClick={() => setIsLinking(false)} className="w-full py-4 md:py-3 bg-white/5 text-white text-[10px] font-black rounded-xl uppercase tracking-[0.2em] cursor-pointer">Back</button>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              <button className="py-4 md:py-3 bg-white/5 text-white text-[10px] font-black rounded-xl uppercase tracking-[0.2em]">Save</button>
+              <button className="py-4 md:py-3 bg-white/5 text-white text-[10px] font-black rounded-xl uppercase tracking-[0.2em] cursor-pointer">Save</button>
               <button
                 onClick={handleDelete}
                 disabled={loading}
-                className={`py-4 md:py-3 border text-[10px] font-black rounded-xl uppercase tracking-[0.15em] transition-all ${confirmDelete ? "border-red-500 bg-red-500/10 text-red-500" : "border-red-900/30 text-red-500/70"}`}
+                className={`py-4 md:py-3 border text-[10px] font-black rounded-xl uppercase tracking-[0.15em] transition-all cursor-pointer ${confirmDelete ? "border-red-500 bg-red-500/10 text-red-500" : "border-red-900/30 text-red-500/70"}`}
               >
                 {confirmDelete ? "Confirm" : "Delete"}
               </button>

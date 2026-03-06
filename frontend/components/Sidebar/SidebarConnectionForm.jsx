@@ -18,7 +18,7 @@ const SidebarConnectionForm = ({ form, errors, onChange }) => {
             <button
               key={t}
               onClick={() => onChange('type', t)}
-              className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase border transition-all ${form.type === t ? 'bg-blue-600 border-blue-400 text-white shadow-lg' : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'}`}
+              className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase border transition-all cursor-pointer ${form.type === t ? 'bg-blue-600 border-blue-400 text-white shadow-lg' : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'}`}
             >
               {t}
             </button>

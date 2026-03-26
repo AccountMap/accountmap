@@ -10,7 +10,7 @@ import { loadImage } from "./../utilities/iconService";
 const isDummyConnection = (node) =>
   !!node.accounts && (!node.type || !node.value || String(node.type).toLowerCase() === 'dummy');
 
-const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, onToggle3D }) => {
+const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, onToggle3D, showControls = true }) => {
   const [iconCache, setIconCache] = useState({});
   const fgRef = useRef();
   const isMobile = useMemo(() => window.innerWidth < 768, []);
@@ -153,7 +153,7 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
 
   return (
     <div id="graph-container" className="w-full h-full relative bg-[#0a0a0a] overflow-hidden">
-      {onToggle3D && (
+      {showControls && onToggle3D && (
         <button
           type="button"
           onClick={onToggle3D}
@@ -162,17 +162,21 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
           → {is3D ? "2D" : "3D"}
         </button>
       )}
-      <button 
-        onClick={handleCenter}
-        title="Center and fit graph"
-        aria-label="Center and fit graph"
-        className="absolute bottom-6 right-6 z-[100] bg-blue-600 border border-white/20 text-white p-4 rounded-full shadow-lg active:scale-90 transition-all hover:bg-blue-500"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="3"/><path d="M3 12h3m12 0h3M12 3v3m0 12v3"/></svg>
-      </button>
-      <p className="absolute top-4 right-4 z-[100] text-[10px] text-white/50 pointer-events-none">
-        {is3D ? 'Drag to rotate · Scroll to zoom · Drag node to move' : 'Drag to pan · Scroll to zoom'}
-      </p>
+      {showControls && (
+        <button 
+          onClick={handleCenter}
+          title="Center and fit graph"
+          aria-label="Center and fit graph"
+          className="absolute bottom-6 right-6 z-[100] bg-blue-600 border border-white/20 text-white p-4 rounded-full shadow-lg active:scale-90 transition-all hover:bg-blue-500"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="3"/><path d="M3 12h3m12 0h3M12 3v3m0 12v3"/></svg>
+        </button>
+      )}
+      {showControls && (
+        <p className="absolute top-4 right-4 z-[100] text-[10px] text-white/50 pointer-events-none">
+          {is3D ? "Drag to rotate · Scroll to zoom · Drag node to move" : "Drag to pan · Scroll to zoom"}
+        </p>
+      )}
 
       {is3D ? (
         <ForceGraph3D

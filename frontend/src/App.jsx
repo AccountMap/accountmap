@@ -153,7 +153,7 @@ function AppContent() {
         )}
 
         <Routes>
-          <Route path="/" element={<MapView nodes={processedNodes} links={mapLinks} onSelectAccount={handleSelect} selectedId={selectedId} is3D={is3D} onToggle3D={() => setIs3D((prev) => !prev)} />} />
+          <Route path="/" element={<MapView nodes={processedNodes} links={mapLinks} onSelectAccount={handleSelect} selectedId={selectedId} is3D={is3D} onToggle3D={() => setIs3D((prev) => !prev)} showControls={healthStatus === "online"} />} />
           <Route path="/list" element={<ListView entities={entities} onSelectAccount={handleSelect} selectedId={selectedId} />} />
           <Route path="/about" element={<About />} />
         </Routes>

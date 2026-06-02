@@ -6,12 +6,17 @@ import { forceCollide } from "d3-force";
 import * as THREE from "three";
 import SpriteText from "three-spritetext";
 import { loadImage } from "./../utilities/iconService";
+import { createIconTexture, getCircleTexture } from "./../utilities/textureFromImage";
+
+const nodeIdKey = (id) => String(id);
 
 const isDummyConnection = (node) =>
   !!node.accounts && (!node.type || !node.value || String(node.type).toLowerCase() === 'dummy');
 
 const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, onToggle3D, showControls = true }) => {
   const [iconCache, setIconCache] = useState({});
+  const [iconCacheRevision, setIconCacheRevision] = useState(0);
+  const loadedIconIdsRef = useRef(new Set());
   const fgRef = useRef();
   const isMobile = useMemo(() => window.innerWidth < 768, []);
   const initialLoadRef = useRef(true);
@@ -19,19 +24,40 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
   useEffect(() => {
     let isMounted = true;
     const loadIcons = async () => {
-      const updates = {};
+      const iconKeyToNodeIds = new Map();
       for (const node of nodes) {
-        if (!iconCache[node.id]) {
+        const id = nodeIdKey(node.id);
+        if (loadedIconIdsRef.current.has(id)) continue;
+        const isConn = !!node.accounts;
+        const iconKey = isConn ? (isDummyConnection(node) ? 'dummy' : node.type) : node.name;
+        if (!iconKeyToNodeIds.has(iconKey)) iconKeyToNodeIds.set(iconKey, []);
+        iconKeyToNodeIds.get(iconKey).push(id);
+      }
+      if (iconKeyToNodeIds.size === 0) return;
+
+      const results = await Promise.all(
+        [...iconKeyToNodeIds.entries()].map(async ([iconKey, nodeIds]) => {
           try {
-            const isConn = !!node.accounts;
-            const iconKey = isConn ? (isDummyConnection(node) ? 'dummy' : node.type) : node.name;
             const img = await loadImage(iconKey);
-            if (img && img.width > 0) updates[node.id] = img;
-          } catch (e) {}
+            return { nodeIds, img };
+          } catch {
+            return { nodeIds, img: null };
+          }
+        })
+      );
+
+      const updates = {};
+      for (const { nodeIds, img } of results) {
+        if (img && img.width > 0) {
+          for (const nodeId of nodeIds) {
+            updates[nodeId] = img;
+            loadedIconIdsRef.current.add(nodeId);
+          }
         }
       }
       if (isMounted && Object.keys(updates).length > 0) {
         setIconCache(prev => ({ ...prev, ...updates }));
+        setIconCacheRevision(rev => rev + 1);
       }
     };
     loadIcons();
@@ -39,13 +65,17 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
   }, [nodes]);
 
   const graphData = useMemo(() => ({
-    nodes: nodes.map(n => ({ ...n, id: String(n.id) })),
+    nodes: nodes.map(n => ({
+      ...n,
+      id: nodeIdKey(n.id),
+      _iconRev: iconCacheRevision,
+    })),
     links: links.map(l => ({
       ...l,
-      source: typeof l.source === 'object' ? l.source.id : String(l.source),
-      target: typeof l.target === 'object' ? l.target.id : String(l.target)
+      source: typeof l.source === 'object' ? nodeIdKey(l.source.id) : nodeIdKey(l.source),
+      target: typeof l.target === 'object' ? nodeIdKey(l.target.id) : nodeIdKey(l.target)
     }))
-  }), [nodes, links]);
+  }), [nodes, links, iconCacheRevision]);
 
   // STABILIZATION & PHYSICS – scale by node count so large graphs don’t “fly apart”
   const n = nodes.length;
@@ -103,9 +133,9 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
   };
 
   const getNodeThreeObject = useCallback((node) => {
-    const isSelected = String(node.id) === String(selectedId);
+    const isSelected = nodeIdKey(node.id) === nodeIdKey(selectedId);
     const isConn = !!node.accounts;
-    const img = iconCache[node.id];
+    const img = iconCache[nodeIdKey(node.id)];
     const group = new THREE.Group();
     
     const baseSize = isConn ? (isMobile ? 12 : 8) : (isMobile ? 8 : 5);
@@ -117,23 +147,35 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
     );
     group.add(hitBox);
 
-    const sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(baseSize),
-      new THREE.MeshLambertMaterial({ 
-        color: isSelected ? "#3b82f6" : (isConn ? "#1e1e1e" : "#ffffff"),
-        transparent: true, opacity: 0.9 
+    const diskScale = baseSize * 2.2;
+    const iconScale = baseSize * 1.45;
+    const fill = isSelected ? '#3b82f6' : (isConn ? '#1e1e1e' : '#ffffff');
+    const stroke = isSelected ? '#60a5fa' : null;
+
+    const diskSprite = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: getCircleTexture(THREE, { fill, stroke }),
+        depthTest: false,
+        depthWrite: false,
+        transparent: true,
       })
     );
-    group.add(sphere);
+    diskSprite.scale.set(diskScale, diskScale, 1);
+    diskSprite.renderOrder = 0;
+    group.add(diskSprite);
 
-    if (img) {
-      const texture = new THREE.Texture(img);
-      texture.needsUpdate = true;
-      const spriteMaterial = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true });
-      const sprite = new THREE.Sprite(spriteMaterial);
-      const spriteScale = isConn ? (isMobile ? 16 : 10) : (isMobile ? 12 : 7);
-      sprite.scale.set(spriteScale, spriteScale, 1);
-      group.add(sprite);
+    if (img && img.width > 0) {
+      const iconSprite = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: createIconTexture(img, THREE),
+          depthTest: false,
+          depthWrite: false,
+          transparent: true,
+        })
+      );
+      iconSprite.scale.set(iconScale, iconScale, 1);
+      iconSprite.renderOrder = 1;
+      group.add(iconSprite);
     }
 
     // Only show labels for connections (not accounts) to avoid clutter; account names show on hover
@@ -229,7 +271,7 @@ const MapView = ({ nodes = [], links = [], onSelectAccount, selectedId, is3D, on
             const isSelected = String(node.id) === String(selectedId);
             const isConn = !!node.accounts;
             const size = isConn ? (isMobile ? 18 : 12) : (isMobile ? 12 : 8);
-            const img = iconCache[node.id];
+            const img = iconCache[nodeIdKey(node.id)];
             
             if (isSelected) {
               ctx.beginPath(); ctx.arc(node.x, node.y, size + 4, 0, 2 * Math.PI);

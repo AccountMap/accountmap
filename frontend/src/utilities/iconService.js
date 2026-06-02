@@ -240,28 +240,115 @@ export function getIconUrl(name) {
   return candidates[0] ?? GENERIC_ICON;
 }
 
+const imageCache = new Map();
+
+function cacheKey(name) {
+  return normalizeKey(name) || String(name ?? '');
+}
+
+/** Fetch + rasterize so canvas/WebGL is same-origin (Brave blocks tainted cross-origin uploads). */
+async function loadImageFromUrl(url) {
+  const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const bitmap = await createImageBitmap(blob);
+  const size = Math.max(bitmap.width, bitmap.height, 64);
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(bitmap, 0, 0, size, size);
+  bitmap.close?.();
+
+  const img = new Image();
+  img.src = canvas.toDataURL('image/png');
+  if (img.decode) await img.decode();
+  else await new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = reject;
+  });
+  return img;
+}
+
+function loadImageLegacy(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('load failed'));
+    img.src = url;
+  });
+}
+
+function loadFallbackImage() {
+  return loadImageFromUrl(GENERIC_ICON).catch(() =>
+    loadImageLegacy(GENERIC_ICON).catch(() => {
+      const img = new Image();
+      img.src = GENERIC_ICON;
+      return img;
+    })
+  );
+}
+
 /**
- * Tries each candidate URL in order until one loads. Always resolves with a valid image (at least GENERIC_ICON).
+ * Loads icon candidates in parallel while respecting priority order.
+ * Always resolves with a valid image (at least GENERIC_ICON). Results are cached by name.
  */
 export function loadImage(name) {
-  const candidates = getIconCandidates(name);
+  const key = cacheKey(name);
+  if (imageCache.has(key)) return imageCache.get(key);
 
-  return new Promise((resolve) => {
-    function tryNext(index) {
-      if (index >= candidates.length) {
-        const fallback = new Image();
-        fallback.crossOrigin = 'anonymous';
-        fallback.src = GENERIC_ICON;
-        fallback.onload = () => resolve(fallback);
-        fallback.onerror = () => resolve(fallback);
+  const candidates = getIconCandidates(name);
+  const promise = new Promise((resolve) => {
+    if (!candidates.length) {
+      loadFallbackImage().then(resolve);
+      return;
+    }
+
+    let settled = false;
+    const outcomes = candidates.map(() => null);
+
+    const tryResolveBest = () => {
+      if (settled) return;
+      for (let i = 0; i < outcomes.length; i++) {
+        if (outcomes[i] === false) continue;
+        if (outcomes[i]) {
+          settled = true;
+          resolve(outcomes[i]);
+          return;
+        }
         return;
       }
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = candidates[index];
-      img.onload = () => resolve(img);
-      img.onerror = () => tryNext(index + 1);
-    }
-    tryNext(0);
+    };
+
+    let failed = 0;
+    const onFail = (index) => {
+      outcomes[index] = false;
+      failed += 1;
+      tryResolveBest();
+      if (failed === candidates.length && !settled) {
+        settled = true;
+        loadFallbackImage().then(resolve);
+      }
+    };
+
+    candidates.forEach((url, index) => {
+      loadImageFromUrl(url)
+        .then((img) => {
+          outcomes[index] = img;
+          tryResolveBest();
+        })
+        .catch(() => {
+          loadImageLegacy(url)
+            .then((img) => {
+              outcomes[index] = img;
+              tryResolveBest();
+            })
+            .catch(() => onFail(index));
+        });
+    });
   });
+
+  imageCache.set(key, promise);
+  return promise;
 }

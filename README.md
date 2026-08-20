@@ -8,7 +8,7 @@ This web application helps users manage their different login methods to each ac
 
 ## Team Members
 
-- [Andrii Malakhovtsev](https://github.com/andrii-malakhovtsev) - <malakhovtsev.2@wright.edu>
+- [Andrii Malakhovtsev](https://github.com/malakhovtsev) - <malakhovtsev.2@wright.edu>
 - [Brianna Persinger](https://github.com/BBBree) - <persinger.9@wright.edu>
 - [Owen Kemp](https://github.com/Striker2783) - <kemp.56@wright.edu>
 - [Sulav Pradhan](https://github.com/sulav-pradhan) - <pradhan.49@wright.edu>

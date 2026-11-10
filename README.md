@@ -18,6 +18,7 @@ Most people don't know that one Gmail address can reset half their accounts, or 
 - **Map your accounts:** each account connected to the emails, phone numbers, and authenticators that can recover it, shown as an interactive graph or a list.
 - **Find weak spots:** single points of failure, SMS-only recovery, accounts with nothing listed, and too many accounts depending on one email.
 - **"What if I lose…" simulation:** pick your phone or an email and see every account you'd be locked out of.
+- **Devices and focus view:** see which accounts live on which device, and click any phone number, email, or device to see everything that depends on it.
 - **Import instead of typing:** build your map from a Bitwarden, 1Password, or browser password export. Passwords are discarded while parsing and never stored.
 - **Emergency sheet:** a printable summary of how to get back into everything.
 - **Browser extension:** notices when you sign up or sign in somewhere and offers to add it to your map.

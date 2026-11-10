@@ -64,8 +64,8 @@ AccountMap started as a 24-hour hackathon project in February 2026 and won River
 
 ## Contributing
 
-The project is just getting started. Issues labeled [`good first issue`](../../labels/good%20first%20issue) are a good place to begin. Contribution guidelines are coming in M0.
+The project is just getting started. Issues labeled [`good first issue`](../../labels/good%20first%20issue) are a good place to begin. Contribution guidelines are coming in M0 ([#6](../../issues/6)).
 
 ## License
 
-To be decided in M0 (see the license issue).
+To be decided in M0, see [#1](../../issues/1).
